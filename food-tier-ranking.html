@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Tier Ranking</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --daily: #00e676;
+    --frequent: #ffd600;
+    --limited: #ff6d00;
+    --rare: #ff1744;
+    --bg: #080810;
+    --surface: #0f0f1a;
+    --card: #141428;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e8ff;
+    --subtext: #6b6b9a;
+    --glow-green: rgba(0,230,118,0.15);
+    --glow-yellow: rgba(255,214,0,0.15);
+    --glow-orange: rgba(255,109,0,0.15);
+    --glow-red: rgba(255,23,68,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Cairo', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 9:16 Container */
+  .phone-frame {
+    width: min(430px, 100vw);
+    height: min(932px, 100vh);
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP HALF: Camera Space */
+  .camera-zone {
+    height: 42%;
+    width: 100%;
+    background: linear-gradient(180deg, #000000 0%, #05050f 60%, #080810 100%);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .camera-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 50% 30%, rgba(0,191,255,0.04) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
+    pointer-events: none;
+  }
+
+  .camera-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .camera-icon {
+    width: 44px;
+    height: 44px;
+    border: 2px dashed rgba(255,255,255,0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .camera-text {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+
+  /* Divider line with glow */
+  .divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00bfff, #00ff88, #00bfff, transparent);
+    box-shadow: 0 0 20px rgba(0,255,136,0.4), 0 0 40px rgba(0,191,255,0.2);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .divider::after {
+    content: '▼ FOOD TIER ▼';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    padding: 0 12px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: #00ff88;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* BOTTOM HALF: App */
+  .app-zone {
+    height: 58%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* Header */
+  .app-header {
+    padding: 10px 14px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .app-title {
+    font-size: 14px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00ff88, #00bfff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.5px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,51,102,0.15);
+    border: 1px solid rgba(255,51,102,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--never);
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--never);
+    border-radius: 50%;
+    animation: pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--never);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Tier lanes */
+  .tiers-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: none;
+  }
+
+  .tiers-container::-webkit-scrollbar { display: none; }
+
+  .tier-lane {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 48px;
+    border-radius: 10px;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tier-lane.drag-over {
+    transform: scale(1.01);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .tier-lane[data-tier="daily"]    { background: rgba(0,230,118,0.06);  border-color: rgba(0,230,118,0.15); }
+  .tier-lane[data-tier="frequent"] { background: rgba(255,214,0,0.06);  border-color: rgba(255,214,0,0.15); }
+  .tier-lane[data-tier="limited"]  { background: rgba(255,109,0,0.06);  border-color: rgba(255,109,0,0.15); }
+  .tier-lane[data-tier="rare"]     { background: rgba(255,23,68,0.06);  border-color: rgba(255,23,68,0.15); }
+
+  .tier-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+    flex-shrink: 0;
+  }
+
+  .tier-emoji { font-size: 14px; line-height: 1; }
+
+  .tier-name {
+    font-size: 8.5px;
+    font-weight: 700;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .tier-lane[data-tier="daily"]    .tier-name { color: var(--daily); }
+  .tier-lane[data-tier="frequent"] .tier-name { color: var(--frequent); }
+  .tier-lane[data-tier="limited"]  .tier-name { color: var(--limited); }
+  .tier-lane[data-tier="rare"]     .tier-name { color: var(--rare); }
+
+  .tier-sep {
+    width: 1px;
+    height: 36px;
+    flex-shrink: 0;
+    opacity: 0.3;
+    border-radius: 2px;
+  }
+
+  .tier-lane[data-tier="daily"]    .tier-sep { background: var(--daily); }
+  .tier-lane[data-tier="frequent"] .tier-sep { background: var(--frequent); }
+  .tier-lane[data-tier="limited"]  .tier-sep { background: var(--limited); }
+  .tier-lane[data-tier="rare"]     .tier-sep { background: var(--rare); }
+
+  .tier-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+    min-height: 36px;
+    align-content: flex-start;
+  }
+
+  .tier-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.08);
+    min-width: 40px;
+    animation: itemIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes itemIn {
+    from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  .tier-item:hover {
+    transform: scale(1.08);
+    background: rgba(255,255,255,0.1);
+    z-index: 10;
+  }
+
+  .tier-item img {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .tier-item-emoji { font-size: 18px; line-height: 1; }
+
+  .tier-item-name {
+    font-size: 7.5px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+    text-align: center;
+    max-width: 40px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Food Queue */
+  .queue-section {
+    flex-shrink: 0;
+    padding: 6px 10px 8px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+  }
+
+  .queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .queue-title {
+    font-size: 9px;
+    color: var(--subtext);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+
+  .queue-count {
+    font-size: 9px;
+    color: var(--subtext);
+  }
+
+  .queue-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .queue-scroll::-webkit-scrollbar { display: none; }
+
+  .food-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    min-width: 56px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .food-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+    pointer-events: none;
+  }
+
+  .food-card:hover {
+    transform: translateY(-3px) scale(1.05);
+    border-color: rgba(0,255,136,0.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 15px rgba(0,255,136,0.1);
+  }
+
+  .food-card.selected {
+    border-color: rgba(0,255,136,0.6);
+    box-shadow: 0 0 20px rgba(0,255,136,0.25);
+    transform: translateY(-4px) scale(1.08);
+  }
+
+  .food-emoji { font-size: 22px; line-height: 1; }
+
+  .food-name {
+    font-size: 8px;
+    margin-top: 3px;
+    color: rgba(255,255,255,0.65);
+    text-align: center;
+    max-width: 52px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Popup Menu */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .popup-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .popup-card {
+    background: #13131f;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 0 0;
+    padding: 16px;
+    width: 100%;
+    max-width: 430px;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+
+  .popup-overlay.active .popup-card {
+    transform: translateY(0);
+  }
+
+  .popup-food-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-emoji { font-size: 36px; }
+
+  .popup-food-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .popup-food-sub {
+    font-size: 11px;
+    color: var(--subtext);
+    margin-top: 2px;
+  }
+
+  .popup-title {
+    font-size: 11px;
+    color: var(--subtext);
+    margin-bottom: 10px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+  }
+
+  .tier-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tier-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: rgba(255,255,255,0.04);
+    transition: all 0.2s ease;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .tier-btn:hover { transform: scale(1.03); }
+
+  .tier-btn[data-t="daily"]    { border-color: rgba(0,230,118,0.25);  }
+  .tier-btn[data-t="frequent"] { border-color: rgba(255,214,0,0.25);  }
+  .tier-btn[data-t="limited"]  { border-color: rgba(255,109,0,0.25);  }
+  .tier-btn[data-t="rare"]     { border-color: rgba(255,23,68,0.25); grid-column: 1 / -1; }
+
+  .tier-btn[data-t="daily"]:hover    { background: rgba(0,230,118,0.12);  box-shadow: 0 0 15px rgba(0,230,118,0.15); }
+  .tier-btn[data-t="frequent"]:hover { background: rgba(255,214,0,0.12);  box-shadow: 0 0 15px rgba(255,214,0,0.15); }
+  .tier-btn[data-t="limited"]:hover  { background: rgba(255,109,0,0.12);  box-shadow: 0 0 15px rgba(255,109,0,0.15); }
+  .tier-btn[data-t="rare"]:hover     { background: rgba(255,23,68,0.12);  box-shadow: 0 0 15px rgba(255,23,68,0.15); }
+
+  .tier-btn-icon { font-size: 16px; }
+
+  .tier-btn-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: auto;
+  }
+
+  .tier-btn[data-t="daily"]    .tier-btn-dot { background: var(--daily);    box-shadow: 0 0 6px var(--daily); }
+  .tier-btn[data-t="frequent"] .tier-btn-dot { background: var(--frequent); box-shadow: 0 0 6px var(--frequent); }
+  .tier-btn[data-t="limited"]  .tier-btn-dot { background: var(--limited);  box-shadow: 0 0 6px var(--limited); }
+  .tier-btn[data-t="rare"]     .tier-btn-dot { background: var(--rare);     box-shadow: 0 0 6px var(--rare); }
+
+  /* Particle burst */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 200;
+    border-radius: 50%;
+    animation: burst 0.8s ease-out forwards;
+  }
+
+  @keyframes burst {
+    0%   { transform: scale(1) translate(0, 0); opacity: 1; }
+    100% { transform: scale(0) translate(var(--dx), var(--dy)); opacity: 0; }
+  }
+
+  /* Empty lane hint */
+  .empty-hint {
+    font-size: 9px;
+    color: rgba(255,255,255,0.12);
+    font-style: italic;
+    align-self: center;
+  }
+
+  /* Floating neon lines bg */
+  .bg-lines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .bg-line {
+    position: absolute;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(0,255,136,0.08), transparent);
+    animation: lineFloat linear infinite;
+  }
+
+  @keyframes lineFloat {
+    from { transform: translateY(-100%); }
+    to   { transform: translateY(100vh); }
+  }
+
+  .phone-frame { z-index: 1; }
+</style>
+</head>
+<body>
+
+<div class="bg-lines" id="bgLines"></div>
+
+<div class="phone-frame">
+
+  <!-- TOP: Camera Zone -->
+  <div class="camera-zone">
+    <div class="camera-label">
+      <div class="camera-icon">📷</div>
+      <div class="camera-text">CAMERA ZONE</div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- BOTTOM: App -->
+  <div class="app-zone">
+    <div class="app-header">
+      <span class="app-title">🏆 Food Tier Ranking</span>
+
+    </div>
+
+    <!-- Tier Lanes -->
+    <div class="tiers-container" id="tiersContainer">
+      <div class="tier-lane" data-tier="daily"    ondragover="onDragOver(event)" ondrop="onDrop(event,'daily')">
+        <div class="tier-label"><span class="tier-emoji">🟢</span><span class="tier-name">استهلاك يومي</span></div>
+        <div class="tier-sep"></div>
+        <div class="tier-items" id="lane-daily"><span class="empty-hint">اسحب هنا...</span></div>
+      </div>
+      <div class="tier-lane" data-tier="frequent" ondragover="onDragOver(event)" ondrop="onDrop(event,'frequent')">
+        <div class="tier-label"><span class="tier-emoji">🟡</span><span class="tier-name">استهلاك متكرر</span></div>
+        <div class="tier-sep"></div>
+        <div class="tier-items" id="lane-frequent"><span class="empty-hint">اسحب هنا...</span></div>
+      </div>
+      <div class="tier-lane" data-tier="limited"  ondragover="onDragOver(event)" ondrop="onDrop(event,'limited')">
+        <div class="tier-label"><span class="tier-emoji">🟠</span><span class="tier-name">استهلاك محدود</span></div>
+        <div class="tier-sep"></div>
+        <div class="tier-items" id="lane-limited"><span class="empty-hint">اسحب هنا...</span></div>
+      </div>
+      <div class="tier-lane" data-tier="rare"     ondragover="onDragOver(event)" ondrop="onDrop(event,'rare')">
+        <div class="tier-label"><span class="tier-emoji">🔴</span><span class="tier-name">استهلاك نادر</span></div>
+        <div class="tier-sep"></div>
+        <div class="tier-items" id="lane-rare"><span class="empty-hint">اسحب هنا...</span></div>
+      </div>
+    </div>
+
+    <!-- Food Queue -->
+    <div class="queue-section">
+      <div class="queue-header">
+        <span class="queue-title">📦 المكتبة الغذائية</span>
+        <span class="queue-count" id="queueCount"></span>
+      </div>
+      <div class="queue-scroll" id="foodQueue"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Popup -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup-card" id="popupCard">
+    <div class="popup-food-preview">
+      <span class="popup-emoji" id="popupEmoji"></span>
+      <div>
+        <div class="popup-food-name" id="popupName"></div>
+        <div class="popup-food-sub">اختر تصنيف هذا الطعام</div>
+      </div>
+    </div>
+    <div class="popup-title">📊 ضعه في:</div>
+    <div class="tier-options">
+      <button class="tier-btn" data-t="daily"    onclick="assignTier('daily')">   <span class="tier-btn-icon">🟢</span> استهلاك يومي    <span class="tier-btn-dot"></span></button>
+      <button class="tier-btn" data-t="frequent" onclick="assignTier('frequent')"><span class="tier-btn-icon">🟡</span> استهلاك متكرر   <span class="tier-btn-dot"></span></button>
+      <button class="tier-btn" data-t="limited"  onclick="assignTier('limited')"> <span class="tier-btn-icon">🟠</span> استهلاك محدود   <span class="tier-btn-dot"></span></button>
+      <button class="tier-btn" data-t="rare"     onclick="assignTier('rare')">    <span class="tier-btn-icon">🔴</span> استهلاك نادر    <span class="tier-btn-dot"></span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Food Database ----
+const foods = [
+  // 🇮🇶 مطبخ عراقي — أولاً
+  { id:121, emoji:'🍚', name:'تمن حمراء',     cat:'مطبخ عراقي' },
+  { id:122, emoji:'🫕', name:'قيمة',           cat:'مطبخ عراقي' },
+  { id:123, emoji:'🍢', name:'كباب',           cat:'مطبخ عراقي' },
+  { id:124, emoji:'🥩', name:'تكا',            cat:'مطبخ عراقي' },
+  { id:125, emoji:'🥬', name:'مرق بامية',     cat:'مطبخ عراقي' },
+  { id:126, emoji:'🫘', name:'مرق فاصولياء', cat:'مطبخ عراقي' },
+  { id:127, emoji:'🌿', name:'دولمة',          cat:'مطبخ عراقي' },
+  { id:128, emoji:'🍛', name:'برياني',         cat:'مطبخ عراقي' },
+  { id:129, emoji:'🫓', name:'كبة',            cat:'مطبخ عراقي' },
+  { id:130, emoji:'🐑', name:'گوزي',           cat:'مطبخ عراقي' },
+  { id:131, emoji:'🥟', name:'سمبوسة',         cat:'مطبخ عراقي' },
+  { id:132, emoji:'🫓', name:'خبز تنور',      cat:'مطبخ عراقي' },
+  { id:133, emoji:'🥛', name:'جاجيك',          cat:'مطبخ عراقي' },
+  { id:134, emoji:'🫙', name:'خمير',           cat:'مطبخ عراقي' },
+  { id:135, emoji:'🍵', name:'شوربة عدس',     cat:'مطبخ عراقي' },
+  { id:136, emoji:'🍳', name:'عجة',            cat:'مطبخ عراقي' },
+  { id:137, emoji:'🦴', name:'پاچة',           cat:'مطبخ عراقي' },
+  { id:138, emoji:'🍲', name:'تشريب',          cat:'مطبخ عراقي' },
+  { id:139, emoji:'🍚', name:'رز صيادية',     cat:'مطبخ عراقي' },
+  { id:140, emoji:'🐟', name:'مسگوف',          cat:'مطبخ عراقي' },
+  { id:141, emoji:'🍩', name:'زلابية',         cat:'مطبخ عراقي' },
+  { id:142, emoji:'🍮', name:'هريسة',          cat:'مطبخ عراقي' },
+  { id:143, emoji:'🌙', name:'كليجة',          cat:'مطبخ عراقي' },
+  { id:144, emoji:'🍯', name:'گاهي',           cat:'مطبخ عراقي' },
+  { id:145, emoji:'🧈', name:'قيمر وعسل',     cat:'مطبخ عراقي' },
+  { id:146, emoji:'🫖', name:'شاي عراقي',     cat:'مطبخ عراقي' },
+  { id:147, emoji:'🥣', name:'حريرة',          cat:'مطبخ عراقي' },
+  { id:148, emoji:'🌾', name:'فريكة',          cat:'مطبخ عراقي' },
+  { id:149, emoji:'🧆', name:'قروص',           cat:'مطبخ عراقي' },
+  { id:150, emoji:'🥘', name:'مرق بطاطا',     cat:'مطبخ عراقي' },
+  // 🌍 أطباق غربية
+  { id:151, emoji:'🍕', name:'بيتزا مارغريتا', cat:'أطباق غربية' },
+  { id:152, emoji:'🍔', name:'سموك برغر',      cat:'أطباق غربية' },
+  { id:153, emoji:'🥖', name:'سب ساندوتش',     cat:'أطباق غربية' },
+  { id:154, emoji:'🍟', name:'كيرلي فرايز',   cat:'أطباق غربية' },
+  { id:155, emoji:'🌮', name:'تشيكن رابز',     cat:'أطباق غربية' },
+  { id:156, emoji:'🥗', name:'سيزر سلطة',      cat:'أطباق غربية' },
+  { id:157, emoji:'🍝', name:'سباغيتي بولونيز',cat:'أطباق غربية' },
+  { id:158, emoji:'🍝', name:'باستا كريمية',   cat:'أطباق غربية' },
+  { id:159, emoji:'🥩', name:'ستيك مشوي',      cat:'أطباق غربية' },
+  { id:160, emoji:'🍗', name:'تشيكن ألفريدو', cat:'أطباق غربية' },
+  { id:161, emoji:'🌯', name:'كيساديا',         cat:'أطباق غربية' },
+  { id:162, emoji:'🍣', name:'سوشي',            cat:'أطباق غربية' },
+  { id:163, emoji:'🍜', name:'رامن',            cat:'أطباق غربية' },
+  { id:164, emoji:'🫕', name:'لازانيا',         cat:'أطباق غربية' },
+  { id:165, emoji:'🍗', name:'وينغز بالصوص',  cat:'أطباق غربية' },
+  { id:166, emoji:'🌽', name:'ناچوز',           cat:'أطباق غربية' },
+  { id:167, emoji:'🥪', name:'كلوب ساندوتش',   cat:'أطباق غربية' },
+  { id:168, emoji:'🌯', name:'بوريتو',          cat:'أطباق غربية' },
+  { id:169, emoji:'🍖', name:'ريب مشوي',       cat:'أطباق غربية' },
+  { id:170, emoji:'🧀', name:'ماك أند چيز',    cat:'أطباق غربية' },
+  { id:171, emoji:'🥞', name:'بانكيك',          cat:'أطباق غربية' },
+  { id:172, emoji:'🧇', name:'وافل برنتش',      cat:'أطباق غربية' },
+  { id:173, emoji:'🍳', name:'إفطار إنجليزي',  cat:'أطباق غربية' },
+  { id:174, emoji:'🍰', name:'تشيز كيك',        cat:'أطباق غربية' },
+  { id:175, emoji:'🥐', name:'كروفل',           cat:'أطباق غربية' },
+  { id:176, emoji:'🎂', name:'ريد فيلفيت',      cat:'أطباق غربية' },
+  { id:177, emoji:'🥤', name:'فريبوتشينو',      cat:'أطباق غربية' },
+  { id:178, emoji:'🍶', name:'ميلك شيك',        cat:'أطباق غربية' },
+  { id:179, emoji:'☕', name:'إسبريسو',          cat:'أطباق غربية' },
+  { id:180, emoji:'🧋', name:'كراميل ماكياتو', cat:'أطباق غربية' },
+  // 🍎 فواكه
+  { id:1,  emoji:'🍎', name:'تفاح',       cat:'فواكه' },
+  { id:2,  emoji:'🍌', name:'موز',        cat:'فواكه' },
+  { id:3,  emoji:'🍓', name:'فراولة',     cat:'فواكه' },
+  { id:4,  emoji:'🍇', name:'عنب',        cat:'فواكه' },
+  { id:5,  emoji:'🍉', name:'بطيخ',       cat:'فواكه' },
+  { id:6,  emoji:'🍊', name:'برتقال',     cat:'فواكه' },
+  { id:7,  emoji:'🥭', name:'مانجو',      cat:'فواكه' },
+  { id:8,  emoji:'🍑', name:'خوخ',        cat:'فواكه' },
+  { id:9,  emoji:'🍋', name:'ليمون',      cat:'فواكه' },
+  { id:10, emoji:'🍒', name:'كرز',        cat:'فواكه' },
+  { id:11, emoji:'🫐', name:'توت أزرق',  cat:'فواكه' },
+  { id:12, emoji:'🍍', name:'أناناس',     cat:'فواكه' },
+  { id:71, emoji:'🍐', name:'إجاص',       cat:'فواكه' },
+  { id:72, emoji:'🫒', name:'زيتون',      cat:'فواكه' },
+  { id:73, emoji:'🍈', name:'شمام',       cat:'فواكه' },
+  { id:74, emoji:'🥝', name:'كيوي',       cat:'فواكه' },
+  { id:75, emoji:'🌴', name:'تمر',        cat:'فواكه' },
+  { id:76, emoji:'🍑', name:'مشمش',       cat:'فواكه' },
+  // 🥦 خضار
+  { id:13, emoji:'🥦', name:'بروكلي',     cat:'خضار' },
+  { id:14, emoji:'🥕', name:'جزر',        cat:'خضار' },
+  { id:15, emoji:'🧅', name:'بصل',        cat:'خضار' },
+  { id:16, emoji:'🧄', name:'ثوم',        cat:'خضار' },
+  { id:17, emoji:'🌽', name:'ذرة',        cat:'خضار' },
+  { id:18, emoji:'🥬', name:'خس',         cat:'خضار' },
+  { id:19, emoji:'🍅', name:'طماطم',      cat:'خضار' },
+  { id:20, emoji:'🫑', name:'فلفل',       cat:'خضار' },
+  { id:21, emoji:'🥑', name:'أفوكادو',    cat:'خضار' },
+  { id:22, emoji:'🥒', name:'خيار',       cat:'خضار' },
+  { id:23, emoji:'🍆', name:'باذنجان',    cat:'خضار' },
+  { id:24, emoji:'🫛', name:'بازلاء',     cat:'خضار' },
+  { id:77, emoji:'🥔', name:'بطاطا',      cat:'خضار' },
+  { id:78, emoji:'🍠', name:'بطاطا حلوة',cat:'خضار' },
+  { id:79, emoji:'🥜', name:'فول سوداني',cat:'خضار' },
+  { id:80, emoji:'🫚', name:'كوسة',       cat:'خضار' },
+  { id:81, emoji:'🌿', name:'سبانخ',      cat:'خضار' },
+  { id:82, emoji:'🥦', name:'قرنبيط',     cat:'خضار' },
+  { id:83, emoji:'🫛', name:'عدس',        cat:'خضار' },
+  { id:84, emoji:'🌶️', name:'فلفل حار',  cat:'خضار' },
+  // 🍔 وجبات سريعة
+  { id:25, emoji:'🍔', name:'برغر',       cat:'وجبات سريعة' },
+  { id:26, emoji:'🍕', name:'بيتزا',      cat:'وجبات سريعة' },
+  { id:27, emoji:'🍟', name:'بطاطس',      cat:'وجبات سريعة' },
+  { id:28, emoji:'🌮', name:'تاكو',       cat:'وجبات سريعة' },
+  { id:29, emoji:'🌯', name:'شاورما',     cat:'وجبات سريعة' },
+  { id:30, emoji:'🍗', name:'دجاج مقلي', cat:'وجبات سريعة' },
+  { id:31, emoji:'🥪', name:'ساندوتش',    cat:'وجبات سريعة' },
+  { id:32, emoji:'🍜', name:'نودلز',      cat:'وجبات سريعة' },
+  { id:85, emoji:'🥓', name:'بيكون',      cat:'وجبات سريعة' },
+  { id:86, emoji:'🌭', name:'هوت دوغ',   cat:'وجبات سريعة' },
+  { id:87, emoji:'🍳', name:'بيض مقلي',  cat:'وجبات سريعة' },
+  { id:88, emoji:'🍱', name:'لنش بوكس',  cat:'وجبات سريعة' },
+  { id:89, emoji:'🍛', name:'كاري',       cat:'وجبات سريعة' },
+  { id:90, emoji:'🍝', name:'باستا',      cat:'وجبات سريعة' },
+  { id:91, emoji:'🥘', name:'مرق',        cat:'وجبات سريعة' },
+  { id:92, emoji:'🫕', name:'حساء',       cat:'وجبات سريعة' },
+  // 🍰 حلويات
+  { id:33, emoji:'🎂', name:'كيك',        cat:'حلويات' },
+  { id:34, emoji:'🍫', name:'شوكولاتة',  cat:'حلويات' },
+  { id:35, emoji:'🍨', name:'آيسكريم',   cat:'حلويات' },
+  { id:36, emoji:'🍩', name:'دونات',      cat:'حلويات' },
+  { id:37, emoji:'🍪', name:'كوكيز',      cat:'حلويات' },
+  { id:38, emoji:'🧁', name:'كاب كيك',   cat:'حلويات' },
+  { id:39, emoji:'🍮', name:'كريم كراميل',cat:'حلويات' },
+  { id:40, emoji:'🍬', name:'حلوى',       cat:'حلويات' },
+  { id:93, emoji:'🍧', name:'سوربيه',     cat:'حلويات' },
+  { id:95, emoji:'🥐', name:'كرواسان',    cat:'حلويات' },
+  { id:96, emoji:'🧇', name:'وافل',       cat:'حلويات' },
+  { id:97, emoji:'🍞', name:'خبز',        cat:'حلويات' },
+  { id:98, emoji:'🥧', name:'باي',        cat:'حلويات' },
+  // ☕ مشروبات
+  { id:41, emoji:'☕', name:'قهوة',       cat:'مشروبات' },
+  { id:42, emoji:'🧃', name:'عصير',       cat:'مشروبات' },
+  { id:43, emoji:'🥛', name:'حليب',       cat:'مشروبات' },
+  { id:44, emoji:'🍵', name:'شاي',        cat:'مشروبات' },
+  { id:45, emoji:'🧋', name:'بابل تي',   cat:'مشروبات' },
+  { id:46, emoji:'🥤', name:'مشروب غازي',cat:'مشروبات' },
+  { id:47, emoji:'🍹', name:'سموذي',      cat:'مشروبات' },
+  { id:48, emoji:'💧', name:'ماء',        cat:'مشروبات' },
+  { id:99,  emoji:'🧊', name:'عصير مثلج', cat:'مشروبات' },
+  { id:100, emoji:'🍵', name:'ماتشا',     cat:'مشروبات' },
+  { id:101, emoji:'🫧', name:'كولاجين',   cat:'مشروبات' },
+  { id:102, emoji:'🫖', name:'شاي أعشاب', cat:'مشروبات' },
+  // 🥩 بروتينات
+  { id:49, emoji:'🥚', name:'بيض',        cat:'بروتينات' },
+  { id:50, emoji:'🍖', name:'لحم',        cat:'بروتينات' },
+  { id:51, emoji:'🐟', name:'سمك',        cat:'بروتينات' },
+  { id:52, emoji:'🦐', name:'روبيان',     cat:'بروتينات' },
+  { id:53, emoji:'🥩', name:'ستيك',       cat:'بروتينات' },
+  { id:54, emoji:'🫘', name:'فاصولياء',  cat:'بروتينات' },
+  { id:55, emoji:'🌰', name:'مكسرات',     cat:'بروتينات' },
+  { id:56, emoji:'🧀', name:'جبن',        cat:'بروتينات' },
+  { id:103, emoji:'🫀', name:'كبدة',      cat:'بروتينات' },
+  { id:105, emoji:'🦐', name:'جمبري',     cat:'بروتينات' },
+  { id:106, emoji:'🐠', name:'تونة',      cat:'بروتينات' },
+  { id:107, emoji:'🍗', name:'دجاج مشوي', cat:'بروتينات' },
+  { id:108, emoji:'🥚', name:'بيض مسلوق', cat:'بروتينات' },
+  // 🥫 منتجات مصنعة
+  { id:57, emoji:'🥫', name:'معلبات',     cat:'منتجات مصنعة' },
+  { id:58, emoji:'🫙', name:'مخللات',     cat:'منتجات مصنعة' },
+  { id:59, emoji:'🍯', name:'مربى',       cat:'منتجات مصنعة' },
+  { id:60, emoji:'🥞', name:'فطائر',      cat:'منتجات مصنعة' },
+  { id:61, emoji:'🥨', name:'كراكرز',     cat:'منتجات مصنعة' },
+  { id:62, emoji:'🫔', name:'مقبلات',     cat:'منتجات مصنعة' },
+  { id:109, emoji:'🍿', name:'فشار',      cat:'منتجات مصنعة' },
+  { id:110, emoji:'🧈', name:'زبدة',      cat:'منتجات مصنعة' },
+  { id:111, emoji:'🥐', name:'معجنات',    cat:'منتجات مصنعة' },
+  { id:113, emoji:'🧃', name:'عصير معلب', cat:'منتجات مصنعة' },
+  // 🌿 منتجات صحية
+  { id:63, emoji:'🥗', name:'سلطة',       cat:'منتجات صحية' },
+  { id:64, emoji:'🫒', name:'زيت زيتون', cat:'منتجات صحية' },
+  { id:65, emoji:'🍯', name:'عسل',        cat:'منتجات صحية' },
+  { id:66, emoji:'🌿', name:'أعشاب',      cat:'منتجات صحية' },
+  { id:67, emoji:'🥜', name:'زبدة فول',  cat:'منتجات صحية' },
+  { id:69, emoji:'🫘', name:'حمص',        cat:'منتجات صحية' },
+  { id:70, emoji:'🧆', name:'فلافل',      cat:'منتجات صحية' },
+  { id:114, emoji:'🌾', name:'شوفان',     cat:'منتجات صحية' },
+  { id:115, emoji:'🫘', name:'كينوا',     cat:'منتجات صحية' },
+  { id:117, emoji:'🌱', name:'بذور شيا',  cat:'منتجات صحية' },
+  { id:118, emoji:'🍵', name:'كركم',      cat:'منتجات صحية' },
+  { id:119, emoji:'🫐', name:'أكاي',      cat:'منتجات صحية' },
+  { id:120, emoji:'🥛', name:'زبادي',     cat:'منتجات صحية' },
+];
+
+let queue = [...foods];
+let selectedFood = null;
+let dragFood = null;
+
+function renderQueue() {
+  const el = document.getElementById('foodQueue');
+  const count = document.getElementById('queueCount');
+  el.innerHTML = '';
+  count.textContent = queue.length + ' طعام';
+  queue.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'food-card';
+    card.draggable = true;
+    card.innerHTML = `<span class="food-emoji">${f.emoji}</span><span class="food-name">${f.name}</span>`;
+    card.onclick = () => openPopup(f);
+    card.ondragstart = (e) => { dragFood = f; e.dataTransfer.effectAllowed = 'move'; };
+    el.appendChild(card);
+  });
+}
+
+function openPopup(food) {
+  selectedFood = food;
+  document.getElementById('popupEmoji').textContent = food.emoji;
+  document.getElementById('popupName').textContent = food.name;
+  document.getElementById('popupOverlay').classList.add('active');
+}
+
+function closePopup(e) {
+  if (e.target === document.getElementById('popupOverlay')) {
+    document.getElementById('popupOverlay').classList.remove('active');
+    selectedFood = null;
+  }
+}
+
+function assignTier(tier) {
+  if (!selectedFood) return;
+  document.getElementById('popupOverlay').classList.remove('active');
+  placeInTier(selectedFood, tier);
+  queue = queue.filter(f => f.id !== selectedFood.id);
+  selectedFood = null;
+  renderQueue();
+  setTimeout(() => {}, 50);
+}
+
+function placeInTier(food, tier) {
+  const lane = document.getElementById('lane-' + tier);
+  // Remove empty hint
+  const hint = lane.querySelector('.empty-hint');
+  if (hint) hint.remove();
+
+  const item = document.createElement('div');
+  item.className = 'tier-item';
+  item.draggable = true;
+  item.dataset.id = food.id;
+  item.innerHTML = `<span class="tier-item-emoji">${food.emoji}</span><span class="tier-item-name">${food.name}</span>`;
+  item.ondragstart = (e) => {
+    dragFood = food;
+    e.dataTransfer.effectAllowed = 'move';
+    // Mark as coming from tier
+    dragFood._fromTier = tier;
+    setTimeout(() => item.style.opacity = '0.3', 0);
+  };
+  item.ondragend = () => { item.style.opacity = '1'; };
+  item.onclick = () => openPopupFromTier(food, tier, item);
+  lane.appendChild(item);
+  spawnParticles(tier);
+}
+
+function openPopupFromTier(food, fromTier, el) {
+  selectedFood = food;
+  selectedFood._fromTier = fromTier;
+  selectedFood._fromEl = el;
+  document.getElementById('popupEmoji').textContent = food.emoji;
+  document.getElementById('popupName').textContent = food.name;
+  document.getElementById('popupOverlay').classList.add('active');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+document.querySelectorAll('.tier-lane').forEach(lane => {
+  lane.addEventListener('dragleave', () => lane.classList.remove('drag-over'));
+});
+
+function onDrop(e, tier) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragFood) return;
+
+  if (dragFood._fromTier) {
+    const oldLane = document.getElementById('lane-' + dragFood._fromTier);
+    const oldItem = oldLane.querySelector(`[data-id="${dragFood.id}"]`);
+    if (oldItem) oldItem.remove();
+    checkEmptyLane(dragFood._fromTier);
+  } else {
+    queue = queue.filter(f => f.id !== dragFood.id);
+    renderQueue();
+  }
+
+  placeInTier(dragFood, tier);
+  dragFood = null;
+}
+
+function checkEmptyLane(tier) {
+  const lane = document.getElementById('lane-' + tier);
+  if (!lane.querySelector('.tier-item')) {
+    const hint = document.createElement('span');
+    hint.className = 'empty-hint';
+    hint.textContent = 'اسحب هنا...';
+    lane.appendChild(hint);
+  }
+}
+
+// Re-assign from popup even when item is in tier
+const origAssign = window.assignTier;
+window.assignTier = function(tier) {
+  if (!selectedFood) return;
+  document.getElementById('popupOverlay').classList.remove('active');
+
+  if (selectedFood._fromTier) {
+    // Remove from old lane
+    const oldLane = document.getElementById('lane-' + selectedFood._fromTier);
+    const oldItem = oldLane.querySelector(`[data-id="${selectedFood.id}"]`);
+    if (oldItem) oldItem.remove();
+    checkEmptyLane(selectedFood._fromTier);
+    // Place in new lane (only if different)
+    if (tier !== selectedFood._fromTier) {
+      placeInTier(selectedFood, tier);
+    } else {
+      placeInTier(selectedFood, tier); // re-add with animation
+    }
+  } else {
+    placeInTier(selectedFood, tier);
+    queue = queue.filter(f => f.id !== selectedFood.id);
+    renderQueue();
+  }
+
+  selectedFood = null;
+};
+
+// Particle burst
+function spawnParticles(tier) {
+  const colors = {
+    daily:'#00ff88', weekly:'#ffd700', monthly:'#ff8c00', yearly:'#00bfff', never:'#ff3366'
+  };
+  const color = colors[tier];
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (Math.PI * 2 * i) / 8;
+    const dist = 30 + Math.random() * 40;
+    p.style.cssText = `
+      width:${4+Math.random()*4}px;
+      height:${4+Math.random()*4}px;
+      background:${color};
+      box-shadow:0 0 6px ${color};
+      left:50%; top:80%;
+      --dx:${Math.cos(angle)*dist}px;
+      --dy:${Math.sin(angle)*dist}px;
+      animation-duration:${0.5+Math.random()*0.4}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+// BG lines
+function buildBgLines() {
+  const container = document.getElementById('bgLines');
+  for (let i = 0; i < 6; i++) {
+    const line = document.createElement('div');
+    line.className = 'bg-line';
+    const left = 10 + Math.random() * 80;
+    const dur = 8 + Math.random() * 10;
+    const delay = Math.random() * -10;
+    line.style.cssText = `left:${left}%;height:${80+Math.random()*120}px;animation-duration:${dur}s;animation-delay:${delay}s;opacity:${0.3+Math.random()*0.4}`;
+    container.appendChild(line);
+  }
+}
+
+buildBgLines();
+renderQueue();
+</script>
+</body>
+</html>
